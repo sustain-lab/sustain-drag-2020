@@ -61,7 +61,7 @@ def rotate(u, w, th):
     return ur, wr
 
 
-def eddy_covariance_flux(irg, time, t0, t1):
+def eddy_covariance_flux(irg, time, t0, t1, fan):
     """Eddy covariance flux from IRGASON."""
     U, Ustd, Wstd, uw = [], [], [], []
     max_u_gust = 10
