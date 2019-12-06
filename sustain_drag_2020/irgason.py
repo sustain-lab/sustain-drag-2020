@@ -54,3 +54,45 @@ def read_irgason_from_toa5(filenames):
 
 
 
+def rotate(u, w, th):
+    """Rotates the vector (u, w) by angle th."""
+    ur =  np.cos(th) * u + np.sin(th) * w
+    wr = -np.sin(th) * u + np.cos(th) * w
+    return ur, wr
+
+
+def eddy_covariance_flux(irg, time, t0, t1):
+    """Eddy covariance flux from IRGASON."""
+    U, Ustd, Wstd, uw = [], [], [], []
+    max_u_gust = 10
+    max_w_gust = 5
+    for n in range(len(fan)):
+        mask = (time >= t0[n]) & (time <= t1[n])
+        u, v, w = irg['u'][mask][:], irg['v'][mask][:], irg['w'][mask][:]
+
+        # clean up
+        um, vm, wm = np.nanmean(u), np.nanmean(v), np.nanmean(w)
+        u[u > um + max_u_gust] = um + max_u_gust
+        u[u < um - max_u_gust] = um - max_u_gust
+        v[v > vm + max_u_gust] = vm + max_u_gust
+        v[v < vm - max_u_gust] = vm - max_u_gust
+        w[w > wm + max_w_gust] = wm + max_w_gust
+        w[w < wm - max_w_gust] = wm - max_w_gust
+
+        # horizontal velocity
+        u = np.sqrt(u**2 + v**2)
+
+        # rotate
+        angle = np.arctan2(np.nanmean(w), np.nanmean(u))
+        u, w = rotate(u, w, angle)
+
+        # time average
+        um, wm = np.nanmean(u), np.nanmean(w)
+
+        up, wp = u - um, w - wm
+        U.append(um)
+        Ustd.append(np.nanstd(u))
+        Wstd.append(np.nanstd(w))
+        uw.append(np.nanmean(up * wp))
+
+    return np.array(U), np.array(Ustd), np.array(Wstd), np.array(uw)
