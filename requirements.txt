@@ -1,6 +1,7 @@
 git+https://github.com/sustain-lab/asist-python
 jupyter
 matplotlib
+netCDF4
 numpy
 pandas
 scipy
