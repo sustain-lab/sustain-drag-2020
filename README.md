@@ -25,6 +25,7 @@ pip install -U -r requirements.txt
 * [Comparing wind and stress from two experiments](irgason_stress_compare_experiments.ipynb)
 * [Waves from UDM](udm_waves.ipynb)
 * [Along-tank static pressure (ceiling)](static_pressure_ceiling.ipynb)
+* [Wind speed from pitot tubes](pitot_elliott_profiler.ipynb)
 
 ## Notes
 
