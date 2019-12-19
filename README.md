@@ -24,6 +24,7 @@ pip install -U -r requirements.txt
 * [Mean wind speed and eddy-covariance stress (Dec. 3)](irgason_stress_20191203.ipynb)
 * [Comparing wind and stress from two experiments](irgason_stress_compare_experiments.ipynb)
 * [Waves from UDM](udm_waves.ipynb)
+* [Mean water level from UDM](udm_mean_level.ipynb)
 * [Along-tank static pressure (ceiling)](static_pressure_ceiling.ipynb)
 * [Wind speed from pitot tubes](pitot_elliott_profiler.ipynb)
 
