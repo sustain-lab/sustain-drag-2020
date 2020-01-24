@@ -27,6 +27,7 @@ pip install -U -r requirements.txt
 * [Mean water level from UDM](udm_mean_level.ipynb)
 * [Along-tank static pressure (ceiling)](static_pressure_ceiling.ipynb)
 * [Wind speed from pitot tubes](pitot_elliott_profiler.ipynb)
+* [Wind, stress, and waves at different fetch](processing_stress_and_waves_for_uq.ipynb)
 
 ## Notes
 
