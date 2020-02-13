@@ -31,4 +31,5 @@ pip install -U -r requirements.txt
 
 ## Notes
 
+* [Experiment parameters](EXPERIMENTS.md)
 * [Instrument positions (fetch)](INSTRUMENTS.md)
