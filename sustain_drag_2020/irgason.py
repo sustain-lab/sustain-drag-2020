@@ -3,10 +3,14 @@ import glob
 import numpy as np
 import os
 
-def read_irgason_from_toa5(filenames):
+def read_irgason_from_toa5(filenames, valid_flag=16):
     """Reads data from IRGASON output file(s) in TOA5 format.
     If filenames is a string, process a single file. If it is
-    a list of strings, process files in order and concatenate."""
+    a list of strings, process files in order and concatenate
+    valid_flag is the largest value of diagnostic flag to include.
+    Default is 16, which means do not remove any data
+    valid_flag=0 means include only data without any issue
+    valid_flag=11 seems to product reasonable values."""
     if type(filenames) is str:
         print('Reading ', filenames)
         data = [line.rstrip() for line in open(filenames).readlines()[4:]]
@@ -19,8 +23,8 @@ def read_irgason_from_toa5(filenames):
         raise RuntimeError('filenames must be string or list')
 
     times = []
-    irgason1 = {'u': [], 'v': [], 'w': [], 'T': []}
-    irgason2 = {'u': [], 'v': [], 'w': [], 'T': []}
+    irgason1 = {'u': [], 'v': [], 'w': [], 'T': [], 'flag': []}
+    irgason2 = {'u': [], 'v': [], 'w': [], 'T': [], 'flag': []}
 
     print('Processing IRGASON time series..')
 
@@ -40,15 +44,21 @@ def read_irgason_from_toa5(filenames):
         irgason1['v'].append(float(line[15].strip('"')))
         irgason1['w'].append(float(line[16].strip('"')))
         irgason1['T'].append(float(line[17].strip('"')))
+        irgason1['flag'].append(int(line[18].strip('"').replace('NAN', '16')))
         irgason2['u'].append(float(line[26].strip('"')))
         irgason2['v'].append(float(line[27].strip('"')))
         irgason2['w'].append(float(line[28].strip('"')))
         irgason2['T'].append(float(line[29].strip('"')))
+        irgason2['flag'].append(int(line[30].strip('"').replace('NAN', '16')))
 
     times = np.array(times)
-    for var in ['u', 'v', 'w', 'T']:
+    for var in ['u', 'v', 'w', 'T', 'flag']:
         irgason1[var] = np.array(irgason1[var])
         irgason2[var] = np.array(irgason2[var])
+
+    for var in ['u', 'v', 'w', 'T']:
+        irgason1[var][irgason1['flag'] > valid_flag] = np.nan 
+        irgason2[var][irgason2['flag'] > valid_flag] = np.nan 
 
     return times, irgason1, irgason2
 
