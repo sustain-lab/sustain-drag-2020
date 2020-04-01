@@ -28,6 +28,7 @@ pip install -U -r requirements.txt
 * [Along-tank static pressure (ceiling)](static_pressure_ceiling.ipynb)
 * [Wind speed from pitot tubes](pitot_elliott_profiler.ipynb)
 * [Wind, stress, and waves at different fetch](processing_stress_and_waves_for_uq.ipynb)
+* [Stress from IRGASON from multiple experiments](irgason_stress_all.ipynb)
 
 ## Notes
 
