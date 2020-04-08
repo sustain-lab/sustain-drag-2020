@@ -25,6 +25,7 @@ pip install -U -r requirements.txt
 * [Comparing wind and stress from two experiments](irgason_stress_compare_experiments.ipynb)
 * [Waves from UDM](udm_waves.ipynb)
 * [Mean water level from UDM](udm_mean_level.ipynb)
+* [Analyzing spurious sawtooth signal in UDM data](udm_sawtooth.ipynb)
 * [Along-tank static pressure (ceiling)](static_pressure_ceiling.ipynb)
 * [Wind speed from pitot tubes](pitot_elliott_profiler.ipynb)
 * [Wind, stress, and waves at different fetch](processing_stress_and_waves_for_uq.ipynb)
