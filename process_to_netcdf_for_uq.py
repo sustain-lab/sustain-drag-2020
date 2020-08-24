@@ -23,6 +23,9 @@ irg_seconds = np.array([(t - start_time).total_seconds() for t in ttime])
 
 seconds = np.linspace(0, irg_seconds.max(), int(irg_seconds.max() * FREQUENCY) + 1, endpoint=True)
 
+fan = (seconds // RUN_SECONDS) * 5
+fan[-1] = 60
+
 u1 = np.interp(seconds, irg_seconds, irg1['u'][mask])
 u2 = np.interp(seconds, irg_seconds, irg2['u'][mask])
 v1 = np.interp(seconds, irg_seconds, irg1['v'][mask])
@@ -52,6 +55,7 @@ e3 -= np.mean(e3[seconds < RUN_SECONDS])
 
 ds = xr.Dataset(
     {
+        'fan': ('time', fan), 
         'u1': ('time', u1), 
         'u2': ('time', u2), 
         'v1': ('time', v1), 
@@ -69,6 +73,8 @@ ds = xr.Dataset(
 
 ds['time'].attrs['name'] = 'Time since start of experiment'
 ds['time'].attrs['units'] = 's'
+ds['fan'].attrs['name'] = 'Fan speed'
+ds['fan'].attrs['units'] = 'Hz'
 ds['u1'].attrs['name'] = 'Along-tank velocity from IRGASON 1'
 ds['u1'].attrs['units'] = 'm/s'
 ds['u1'].attrs['fetch'] = 7.15
@@ -105,6 +111,8 @@ ds['e3'].attrs['fetch'] = 10.1
 
 ds.attrs['experiment_name'] = 'wind-only_fresh-water_20191121'
 ds.attrs['experiment_time'] = start_time.strftime('%Y-%m-%d_%H:%M:%S')
+ds.attrs['water_type'] = 'fresh'
+ds.attrs['initial_water_depth'] = 0.8
 ds.attrs['institution'] = 'University of Miami'
 ds.attrs['facility'] = 'SUSTAIN Laboratory'
 ds.attrs['tank'] = 'SUSTAIN'
