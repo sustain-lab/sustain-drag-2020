@@ -18,7 +18,7 @@ def read_wavewire_from_toa5(filenames):
         raise RuntimeError('filenames must be string or list')
 
     times = []
-    d = {'w1': [], 'w2': [], 'w3': [], 'd1': [], 'd2': [], 'd3': []}
+    d = {'w1': [], 'w2': [], 'w3': [], 'w4': [], 'd1': [], 'd2': [], 'd3': [], 'd4': []}
 
     print('Processing wave wire time series..')
 
@@ -37,9 +37,11 @@ def read_wavewire_from_toa5(filenames):
         d['w1'].append(float(line[2].strip('"')))
         d['w2'].append(float(line[3].strip('"')))
         d['w3'].append(float(line[4].strip('"')))
+        d['w4'].append(float(line[5].strip('"')))
         d['d1'].append(float(line[6].strip('"')))
         d['d2'].append(float(line[7].strip('"')))
         d['d3'].append(float(line[8].strip('"')))
+        d['d4'].append(float(line[9].strip('"')))
 
     for key in d.keys():
         d[key] = np.array(d[key])
