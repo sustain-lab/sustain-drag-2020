@@ -11,6 +11,7 @@ import xarray as xr
 DATAPATH = '/home/milan/Work/sustain/data/sustain-drag-2020/20201106'
 RUN_SECONDS = 600
 FREQUENCY = 20
+FREQUENCY_PRESSURE = 10
 NUM_RUNS = 11
 
 start_time = datetime(2020, 11, 6, 17, 50)
@@ -82,6 +83,9 @@ fetch_u = fetch_nov2020['udm']
 data = pd.read_csv(DATAPATH + '/scanivalve_mps_' + start_time.strftime('%Y%m%d') + '.csv')
 time = data['FTime']
 
+fan_p = (time // RUN_SECONDS) * 5
+fan[-1] = 50
+
 fetch_p = fetch_nov2020['static_pressure']
 
 p = np.zeros((9, time.size))
@@ -100,6 +104,7 @@ p[8,:] = data['41Press'][:]
 ds = xr.Dataset(
     {
         'fan': ('time', fan), 
+        'fan_p': ('time_p', fan_p), 
         'u': ('time', u), 
         'v': ('time', v), 
         'w': ('time', w), 
@@ -128,6 +133,8 @@ ds['fetch_u'].attrs['name'] = 'Fetch of UDM'
 ds['fetch_u'].attrs['units'] = 'm'
 ds['fan'].attrs['name'] = 'Fan speed'
 ds['fan'].attrs['units'] = 'Hz'
+ds['fan_p'].attrs['name'] = 'Fan speed in pressure time coordinate'
+ds['fan_p'].attrs['units'] = 'Hz'
 ds['u'].attrs['name'] = 'Along-tank velocity from IRGASON'
 ds['u'].attrs['units'] = 'm/s'
 ds['u'].attrs['fetch'] = 9.55
