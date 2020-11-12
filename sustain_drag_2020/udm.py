@@ -4,6 +4,16 @@ pressure.py
 from datetime import datetime, timedelta
 import numpy as np
 import os
+import pandas as pd
+
+
+def clean_elevation_from_udm(x, max_value=0.3, max_jump=0.08, interpolation_method='polynomial'):
+    xx = np.mean(x[:20 * 600]) - x[:] # offset first 10 minutes
+    xdiff = xx[1:] - xx[:-1]
+    xx[1:][np.abs(xdiff) > max_jump] = np.nan # difference between 2 points should not exceed max_jump
+    xx[np.abs(xx) > max_value] = np.nan # elevation should not go below min_trough
+    return np.array(pd.DataFrame(data=xx).interpolate(method=interpolation_method, order=3))[:,0]
+
 
 def read_udm_from_toa5(filenames):
     """Reads UDM elevation data from TOA5 file written by
