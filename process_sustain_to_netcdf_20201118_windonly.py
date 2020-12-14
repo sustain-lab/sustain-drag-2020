@@ -2,19 +2,19 @@ from datetime import datetime, timedelta
 import glob
 import numpy as np
 import pandas as pd
-from sustain_drag_2020.fetch import fetch_nov2020
+from sustain_drag_2020.fetch import fetch_20201118
 from sustain_drag_2020.irgason import read_irgason_from_toa5
 from sustain_drag_2020.udm import clean_elevation_from_udm, read_udm_from_toa5
 from sustain_drag_2020.wavewire import read_wavewire_from_toa5
 import xarray as xr
 
-DATAPATH = '/home/milan/Work/sustain/data/sustain-drag-2020/20201106'
+DATAPATH = '/home/milan/Work/sustain/data/sustain-drag-2020/20201118'
 RUN_SECONDS = 600
 FREQUENCY = 20
 FREQUENCY_PRESSURE = 10
 NUM_RUNS = 11
 
-start_time = datetime(2020, 11, 6, 17, 50)
+start_time = datetime(2020, 11, 18, 15, 21)
 end_time = start_time + NUM_RUNS * timedelta(seconds=RUN_SECONDS)
 
 # IRGASON
@@ -49,14 +49,14 @@ ww_seconds = np.array([(t - start_time).total_seconds() for t in ttime])
 
 eta_w = np.zeros((4, seconds.size))
 eta_w[0,:] = np.interp(seconds, ww_seconds, data['w2'][mask])
-eta_w[1,:] = np.interp(seconds, ww_seconds, data['w4'][mask])
-eta_w[2,:] = np.interp(seconds, ww_seconds, data['w1'][mask])
-eta_w[3,:] = np.interp(seconds, ww_seconds, data['w3'][mask])
+eta_w[1,:] = np.interp(seconds, ww_seconds, data['w1'][mask])
+eta_w[2,:] = np.interp(seconds, ww_seconds, data['w3'][mask])
+eta_w[3,:] = np.interp(seconds, ww_seconds, data['w4'][mask])
 
 for n in range(4):
     eta_w[n,:] -= np.mean(eta_w[n, seconds < RUN_SECONDS])
 
-fetch_w = fetch_nov2020['wave_wire']
+fetch_w = fetch_20201118['wave_wire']
 
 # UDM
 files = glob.glob(DATAPATH + '/TOA5_SUSTAIN_ELEV*.dat')
@@ -77,16 +77,16 @@ eta_u[4,:] = np.interp(seconds, udm_seconds, u5[mask])
 for n in range(5):
     eta_u[n,:] = clean_elevation_from_udm(eta_u[n,:])
 
-fetch_u = fetch_nov2020['udm']
+fetch_u = fetch_20201118['udm']
 
 # Static pressure
-data = pd.read_csv(DATAPATH + '/scanivalve_mps_' + start_time.strftime('%Y%m%d') + '.csv')
+data = pd.read_csv(DATAPATH + '/scanivalve_mps_' + start_time.strftime('%Y%m%d') + '_windonly.csv')
 time = data['FTime']
 
 fan_p = (time // RUN_SECONDS) * 5
 fan[-1] = 50
 
-fetch_p = fetch_nov2020['static_pressure']
+fetch_p = fetch_20201118['static_pressure']
 
 p = np.zeros((9, time.size))
 
@@ -109,16 +109,16 @@ ds = xr.Dataset(
         'v': ('time', v), 
         'w': ('time', w), 
         'T': ('time', T),
-        'eta_w': (['fetch_w', 'time'], eta_w),
-        'eta_u': (['fetch_u', 'time'], eta_u),
-        'p': (['fetch_p', 'time_p'], p),
+        'eta_w': (['fetch_wavewire', 'time'], eta_w),
+        'eta_u': (['fetch_udm', 'time'], eta_u),
+        'p': (['fetch_pressure', 'time_p'], p),
     },
     coords = {
         'time': seconds,
         'time_p': time.to_numpy(),
-        'fetch_w': fetch_w,
-        'fetch_u': fetch_u,
-        'fetch_p': fetch_p
+        'fetch_wavewire': fetch_w,
+        'fetch_udm': fetch_u,
+        'fetch_pressure': fetch_p
     }
 )
 
@@ -127,10 +127,10 @@ ds['time'].attrs['name'] = 'Time since start of experiment'
 ds['time'].attrs['units'] = 's'
 ds['time_p'].attrs['name'] = 'Time since start of experiment, static pressure only'
 ds['time_p'].attrs['units'] = 's'
-ds['fetch_w'].attrs['name'] = 'Fetch of wave wires'
-ds['fetch_w'].attrs['units'] = 'm'
-ds['fetch_u'].attrs['name'] = 'Fetch of UDM'
-ds['fetch_u'].attrs['units'] = 'm'
+ds['fetch_wavewire'].attrs['name'] = 'Fetch of wave wires'
+ds['fetch_wavewire'].attrs['units'] = 'm'
+ds['fetch_udm'].attrs['name'] = 'Fetch of UDM'
+ds['fetch_udm'].attrs['units'] = 'm'
 ds['fan'].attrs['name'] = 'Fan speed'
 ds['fan'].attrs['units'] = 'Hz'
 ds['fan_p'].attrs['name'] = 'Fan speed in pressure time coordinate'
@@ -154,7 +154,7 @@ ds['eta_w'].attrs['units'] = 'm'
 ds['eta_u'].attrs['name'] = 'Water elevation from UDM'
 ds['eta_u'].attrs['units'] = 'm'
 
-ds.attrs['experiment_name'] = 'wind-only_fresh-water_20201106'
+ds.attrs['experiment_name'] = 'wind-only_fresh-water_20201118'
 ds.attrs['experiment_time'] = start_time.strftime('%Y-%m-%d_%H:%M:%S')
 ds.attrs['water_type'] = 'fresh'
 ds.attrs['initial_water_depth'] = 0.8
