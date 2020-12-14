@@ -154,7 +154,7 @@ ds['eta_w'].attrs['units'] = 'm'
 ds['eta_u'].attrs['name'] = 'Water elevation from UDM'
 ds['eta_u'].attrs['units'] = 'm'
 
-ds.attrs['experiment_name'] = 'wind-only_fresh-water_20201118'
+ds.attrs['experiment_name'] = 'wind-only_fresh-water_' + start_time.strftime('%Y%m%d')
 ds.attrs['experiment_time'] = start_time.strftime('%Y-%m-%d_%H:%M:%S')
 ds.attrs['water_type'] = 'fresh'
 ds.attrs['initial_water_depth'] = 0.8
