@@ -144,6 +144,14 @@ h[:,2] = (h1[:,2] + h2[:,1]) / 2
 h[:,3] = (h1[:,3] + h2[:,2]) / 2
 h[:,4] = h2[:,3]
 
+Sxx_combined = np.zeros((len(FAN), 5))
+Sxx_combined[:,0] = (Sxx1[:,0] + Sxx2[:,0]) / 2
+Sxx_combined[:,1] = Sxx1[:,1]
+Sxx_combined[:,2] = (Sxx1[:,2] + Sxx2[:,1]) / 2
+Sxx_combined[:,3] = (Sxx1[:,3] + Sxx2[:,2]) / 2
+Sxx_combined[:,4] = Sxx2[:,3]
+
+
 x_wavewire = np.array([
     ds1.fetch_wavewire[0],
     ds1.fetch_wavewire[1],
@@ -172,15 +180,16 @@ plt.ylabel('Mean elevation [m]')
 plt.title('Mean elevation from wave wire')
 
 
-good = [0, 1, 2, 3]
+good = [1, 2, 3, 4]
 dhdx = np.zeros((NUM_RUNS))
 dSxxdx = np.zeros((NUM_RUNS))
 for n in range(NUM_RUNS):
-    x = ds.fetch_wavewire[good]
-    #dhdx[n] = np.polyfit(x, h[n,good], 1)[0]
-    dhdx[n] = (h[n,1] - h[n,0]) / (x[1] - x[0])
-    #dSxxdx[n] = np.polyfit(x, Sxx[n,good], 1)[0]
-    dSxxdx[n] = (Sxx[n,1] - Sxx[n,0]) / (x[1] - x[0])
+    #x = ds.fetch_wavewire[good]
+    x = x_wavewire[good]
+    dhdx[n] = np.polyfit(x, h[n,good], 1)[0]
+    #dhdx[n] = (h[n,4] - h[n,1]) / (x[4] - x[1])
+    dSxxdx[n] = np.polyfit(x, Sxx_combined[n,good], 1)[0]
+    #dSxxdx[n] = (Sxx_combined[n,4] - Sxx_combined[n,1]) / (x[4] - x[1])
 
 
 plt.figure(figsize=(16, 6))
@@ -205,16 +214,22 @@ rhoa = 1.2
 # Load eddy covariance data
 ec = xr.open_dataset('data/sustain_eddy_covariance_cd.nc')
 
-dhdx = dhdx_udm
-
 fig = plt.figure(figsize=(8, 6))
-plt.plot(U, rhow * GRAV * H * dhdx, marker='o', label=r'$\rho_w g H \dfrac{\partial h}{\partial x}$')
-plt.plot(U, H * dpdx, marker='o', label='$H\dfrac{\partial p}{\partial x}$')
-plt.plot(U, dSxxdx, marker='o', label='$\dfrac{\partial S_{xx}}{\partial x}$')
-plt.plot(U, rhow * GRAV * H * dhdx + H * dpdx + dSxxdx, 'k-', marker='o', label='Total stress')
+plt.plot(U1, rhow * GRAV * H * dhdx, marker='o', label=r'$\rho_w g H \dfrac{\partial h}{\partial x}$')
+plt.plot(U1, H * dpdx1, marker='o', label='$H\dfrac{\partial p}{\partial x}$')
+plt.plot(U1, dSxxdx, marker='o', label='$\dfrac{\partial S_{xx}}{\partial x}$')
+plt.plot(U1, rhow * GRAV * H * dhdx + H * dpdx1 + dSxxdx, 'k-', marker='o', label='Total stress')
 plt.legend(ncol=2, prop={'size': 14})
 plt.xlabel('Fan speed [Hz]')
 plt.ylabel('Stress component [$N/m^2$]')
 plt.plot([0, 45], [0, 0], 'k--')
 plt.ylim(-20, 40)
 plt.grid()
+
+tau_mb1 = rhow * GRAV * H * dhdx + H * dpdx1 + dSxxdx
+tau_mb2 = rhow * GRAV * H * dhdx + H * dpdx2 + dSxxdx
+ust_mb1 = np.sqrt(tau_mb1 / rhoa)
+ust_mb2 = np.sqrt(tau_mb2 / rhoa)
+
+plt.plot(ec.U_hotfilm, ec.ust_hotfilm, 'ko')
+plt.plot(U1, ust_mb1, 'ro')
