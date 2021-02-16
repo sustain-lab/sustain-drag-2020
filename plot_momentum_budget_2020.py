@@ -7,7 +7,7 @@ from scipy.signal import detrend
 from scipy.stats import beta
 from sustain_drag_2020.irgason import read_irgason_from_toa5, rotate
 from sustain_drag_2020.udm import read_udm_from_toa5
-from sustain_drag_2020.fetch import fetch_20201118
+from sustain_drag_2020.fetch import fetch_20201106, fetch_20201118
 from sustain_drag_2020.dispersion import w2k
 import xarray as xr
 
@@ -73,57 +73,84 @@ def mean_pressure(p, time, fan, run_seconds, offset):
             pstd[n,i] = np.std(pp)
     return pmean, pstd
 
+def mean_wind_speed_irgason(ds):
+    U = np.zeros(NUM_RUNS)
+    perc_good = np.zeros(NUM_RUNS)
+    for n in range(NUM_RUNS):
+        t0 = n * RUN_DURATION + RUN_OFFSET
+        t1 = t0 + RUN_DURATION - RUN_OFFSET
+        U[n], _, perc_good[n] = eddy_covariance_flux(ds, t0, t1)
+    return U, perc_good
+
+def pressure_gradient(ds):
+    pmean, pstd =  mean_pressure(np.array(ds.p), np.array(ds.time_p), FAN, RUN_DURATION, RUN_OFFSET)
+    dpdx = np.zeros(NUM_RUNS)
+    good = [1, 2, 3, 4, 5, 6]
+    for n in range(NUM_RUNS):
+        p = np.polyfit(ds.fetch_pressure[good], pmean[n,good], 1)
+        #dpdx[n] = p[0]
+        dpdx[n] = (pmean[n,good][-1] - pmean[n,good][0]) \
+                / (ds.fetch_pressure[good][-1] - ds.fetch_pressure[good][0])
+    return dpdx
+
+def mean_elevation_from_wavewire(ds):
+    h = np.zeros((NUM_RUNS, 4))
+    for n in range(NUM_RUNS):
+        t0 = n * RUN_DURATION + RUN_OFFSET
+        t1 = t0 + RUN_DURATION - RUN_OFFSET
+        mask = (ds.time >= t0) & (ds.time < t1)
+        for i in range(ds.fetch_wavewire.size):
+            h[n,i] = np.mean(ds.eta_w[i,mask])
+    return h
+
+def mean_Sxx_from_wavewire(ds):
+    Sxx = np.zeros((NUM_RUNS, 4))
+    for n in range(NUM_RUNS):
+        t0 = n * RUN_DURATION + RUN_OFFSET
+        t1 = t0 + RUN_DURATION - RUN_OFFSET
+        mask = (ds.time >= t0) & (ds.time < t1)
+        for i in range(ds.fetch_wavewire.size):
+            eta = detrend(ds.eta_w[i,mask])
+            F, f, df = power_spectrum(eta, 1 / 20, binsize=1)
+            fmask = (f > 0.5) & (f < 10)
+            Sxx[n,i] = radiation_stress(F[fmask], f[fmask], np.diff(f)[0], 0.8, rhow=1000)
+    return Sxx
 
 RUN_DURATION = 600
 RUN_OFFSET = 60
 NUM_RUNS = 11
 FAN = range(0, 5 * NUM_RUNS, 5) 
 
-ds = xr.open_dataset('data/sustain_drag_20201118.nc')
+ds1 = xr.open_dataset('data/sustain_drag_20201106.nc')
+ds2 = xr.open_dataset('data/sustain_drag_20201118.nc')
 
-# wind speed
-U = np.zeros(NUM_RUNS)
-perc_good = np.zeros(NUM_RUNS)
-for n in range(NUM_RUNS):
-    t0 = n * RUN_DURATION + RUN_OFFSET
-    t1 = t0 + RUN_DURATION - RUN_OFFSET
-    U[n], _, perc_good[n] = eddy_covariance_flux(ds, t0, t1)
+U1, perc_good1 = mean_wind_speed_irgason(ds1)
+U2, perc_good2 = mean_wind_speed_irgason(ds2)
 
-# static pressure
-pmean, pstd = mean_pressure(np.array(ds.p), np.array(ds.time_p), FAN, RUN_DURATION, RUN_OFFSET)
+# static pressure gradient
+dpdx1 = pressure_gradient(ds1)
+dpdx2 = pressure_gradient(ds2)
 
-good = [1, 2, 3, 4, 5, 6]
+h1 = mean_elevation_from_wavewire(ds1)
+h2 = mean_elevation_from_wavewire(ds2)
 
-fig = plt.figure(figsize=(16, 2))
-dpdx = np.zeros(NUM_RUNS)
-dpdx1 = np.zeros(NUM_RUNS)
-for n in range(NUM_RUNS):
-    ax = plt.subplot2grid((1, NUM_RUNS), (0, n))
-    plt.plot(ds.fetch_pressure[good], pmean[n,good], marker='o')
-    p = np.polyfit(ds.fetch_pressure[good], pmean[n,good], 1)
-    dpdx[n] = p[0]
-    dpdx1[n] = (pmean[n,good][-1] - pmean[n,good][0]) \
-            / (ds.fetch_pressure[good][-1] - ds.fetch_pressure[good][0])
-    plt.plot(ds.fetch_pressure, np.polyval(p, ds.fetch_pressure), lw=1)
-    plt.xlabel('Fetch [m]')
-    if n == 0: plt.ylabel('Pressure [Pa]')
-    plt.title(str(FAN[n]) + ' Hz')
-    plt.grid()
+Sxx1 = mean_Sxx_from_wavewire(ds1)
+Sxx2 = mean_Sxx_from_wavewire(ds2)
 
+h = np.zeros((len(FAN), 5))
+h[:,0] = (h1[:,0] + h2[:,0]) / 2
+h[:,1] = h1[:,1]
+h[:,2] = (h1[:,2] + h2[:,1]) / 2
+h[:,3] = (h1[:,3] + h2[:,2]) / 2
+h[:,4] = h2[:,3]
 
-# wavewire
-h = np.zeros((NUM_RUNS, 4))
-Sxx = np.zeros((NUM_RUNS, 4))
-for n in range(NUM_RUNS):
-    t0 = n * RUN_DURATION + RUN_OFFSET
-    t1 = t0 + RUN_DURATION - RUN_OFFSET
-    mask = (ds.time >= t0) & (ds.time < t1)
-    for i in range(ds.fetch_wavewire.size):
-        h[n,i] = np.mean(ds.eta_w[i,mask])
-        eta = detrend(ds.eta_w[i,mask])
-        F, f, df = power_spectrum(eta, 1 / 20, binsize=1)
-        fmask = (f > 0.5) & (f < 10)
-        Sxx[n,i] = radiation_stress(F[fmask], f[fmask], np.diff(f)[0], 0.8, rhow=1000)
+x_wavewire = np.array([
+    ds1.fetch_wavewire[0],
+    ds1.fetch_wavewire[1],
+    ds1.fetch_wavewire[2],
+    ds1.fetch_wavewire[3],
+    ds2.fetch_wavewire[3]
+])
 
 # UDM
 h_udm = np.zeros((NUM_RUNS, ds.fetch_udm.size))
@@ -137,13 +164,12 @@ for n in range(NUM_RUNS):
 
 plt.figure(figsize=(16, 6))
 for n, f in enumerate(FAN):
-    plt.plot(ds.fetch_wavewire, h[n,:], marker='o', label='%2i Hz' % f)
+    plt.plot(x_wavewire, h[n,:], marker='o', label='%2i Hz' % f)
 plt.legend(ncol=3)
 plt.grid()
 plt.xlabel('Fetch [m]')
 plt.ylabel('Mean elevation [m]')
 plt.title('Mean elevation from wave wire')
-
 
 
 good = [0, 1, 2, 3]
@@ -152,9 +178,9 @@ dSxxdx = np.zeros((NUM_RUNS))
 for n in range(NUM_RUNS):
     x = ds.fetch_wavewire[good]
     #dhdx[n] = np.polyfit(x, h[n,good], 1)[0]
-    dhdx[n] = (h[n,-1] - h[n,0]) / (x[-1] - x[0])
+    dhdx[n] = (h[n,1] - h[n,0]) / (x[1] - x[0])
     #dSxxdx[n] = np.polyfit(x, Sxx[n,good], 1)[0]
-    dSxxdx[n] = (Sxx[n,-1] - Sxx[n,0]) / (x[-1] - x[0])
+    dSxxdx[n] = (Sxx[n,1] - Sxx[n,0]) / (x[1] - x[0])
 
 
 plt.figure(figsize=(16, 6))
@@ -179,13 +205,13 @@ rhoa = 1.2
 # Load eddy covariance data
 ec = xr.open_dataset('data/sustain_eddy_covariance_cd.nc')
 
+dhdx = dhdx_udm
 
 fig = plt.figure(figsize=(8, 6))
 plt.plot(U, rhow * GRAV * H * dhdx, marker='o', label=r'$\rho_w g H \dfrac{\partial h}{\partial x}$')
 plt.plot(U, H * dpdx, marker='o', label='$H\dfrac{\partial p}{\partial x}$')
 plt.plot(U, dSxxdx, marker='o', label='$\dfrac{\partial S_{xx}}{\partial x}$')
 plt.plot(U, rhow * GRAV * H * dhdx + H * dpdx + dSxxdx, 'k-', marker='o', label='Total stress')
-plt.plot(U, rhow * GRAV * H * dhdx + H * dpdx1 + dSxxdx, 'k--', marker='o', label='Total stress')
 plt.legend(ncol=2, prop={'size': 14})
 plt.xlabel('Fan speed [Hz]')
 plt.ylabel('Stress component [$N/m^2$]')
